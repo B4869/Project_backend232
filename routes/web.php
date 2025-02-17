@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/upload_data/store', [FontendController::class, 'uploadDataStore'])->name('upload_data.store');
     Route::post('/chat/new', [ChatController::class, 'createNewChat'])->name('chat.new');
     Route::get('/chat/histories', [ChatController::class, 'getUserChatHistories'])->name('chat.histories');
+    Route::delete('/chat/{id}', [ChatController::class, 'delete'])->name('chat.delete');
 });
 
 require __DIR__ . '/auth.php';

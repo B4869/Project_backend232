@@ -32,15 +32,15 @@ class ChatController extends Controller
     {
         try {
             $query = $request->post('content');
+            $historyId = $request->post('history_id');
             $user = Auth::user();
 
-            // Create or get the latest history for the user
-            $history = Histories::firstOrCreate(
-                ['user_id' => $user->id],
-                ['created_at' => now()]
-            );
+            // ใช้ history_id ที่ส่งมา หรือสร้างใหม่ถ้าไม่มี
+            $history = $historyId
+                ? Histories::findOrFail($historyId)
+                : Histories::create(['user_id' => $user->id]);
 
-            // Save user message
+            // บันทึกข้อความของผู้ใช้
             Messages::create([
                 'history_id' => $history->id,
                 'message' => $query,
@@ -120,9 +120,13 @@ class ChatController extends Controller
 
         $messages = $history->messages()->orderBy('created_at')->get();
 
+        $firstUserMessage = $messages->where('sender', 'user')->first();
+        $chatName = $firstUserMessage ? substr($firstUserMessage->message, 0, 50) : 'New Chat';
+
         return [
             'history_id' => $history->id,
-            'messages' => $messages
+            'messages' => $messages,
+            'chat_name' => $chatName
         ];
     }
 
@@ -137,10 +141,33 @@ class ChatController extends Controller
     {
         $user = Auth::user();
         $histories = Histories::where('user_id', $user->id)
+            ->with(['messages' => function ($query) {
+                $query->where('sender', 'user')->orderBy('created_at')->limit(1);
+            }])
             ->orderBy('updated_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($history) {
+                $firstMessage = $history->messages->first();
+                $chatName = $firstMessage ? substr($firstMessage->message, 0, 50) : 'New Chat';
+                return [
+                    'id' => $history->id,
+                    'chat_name' => $chatName,
+                    'updated_at' => $history->updated_at
+                ];
+            });
 
         return response()->json($histories);
+    }
+
+    public function delete(Histories $id)
+    {
+        try {
+            $id->delete();
+
+            return back()->with('success', 'History deleted successfully');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage() . ' Please try again.');
+        }
     }
 
     private function generateEmbedding(string $text): array
