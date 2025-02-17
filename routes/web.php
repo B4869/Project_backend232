@@ -31,14 +31,17 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware('auth')->group(function () {
-    
+
     // fontend controller
     Route::get('/chat', [FontendController::class, 'chatIndex'])->name('chat.index');
     Route::get('/upload_data', [FontendController::class, 'uploadDataIndex'])->name('upload_data.index');
 
     // backend controller
     Route::post('/chat/ask', [ChatController::class, 'ask'])->name('chat.ask');
+    Route::get('/chat/history/{historyId?}', [ChatController::class, 'getHistory'])->name('chat.history');
     Route::post('/upload_data/store', [FontendController::class, 'uploadDataStore'])->name('upload_data.store');
+    Route::post('/chat/new', [ChatController::class, 'createNewChat'])->name('chat.new');
+    Route::get('/chat/histories', [ChatController::class, 'getUserChatHistories'])->name('chat.histories');
 });
 
 require __DIR__ . '/auth.php';

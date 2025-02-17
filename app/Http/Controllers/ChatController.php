@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\KnowledgeBases;
+use App\Models\Histories;
+use App\Models\Messages;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Throwable;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Auth;
 
 class ChatController extends Controller
 {
@@ -25,17 +28,31 @@ class ChatController extends Controller
         ]
     ];
 
-    public function ask(Request $request): string
+    public function ask(Request $request): array
     {
         try {
             $query = $request->post('content');
-            
+            $user = Auth::user();
+
+            // Create or get the latest history for the user
+            $history = Histories::firstOrCreate(
+                ['user_id' => $user->id],
+                ['created_at' => now()]
+            );
+
+            // Save user message
+            Messages::create([
+                'history_id' => $history->id,
+                'message' => $query,
+                'sender' => 'user'
+            ]);
+
             // 1. Generate query embedding
             $queryEmbedding = $this->generateEmbedding($query);
-            
+
             // 2. Retrieve and process dataset
             $entries = KnowledgeBases::all();
-            
+
             // 3. Generate missing embeddings
             foreach ($entries as $entry) {
                 if (!$entry->embedding && $entry->content) {
@@ -43,7 +60,7 @@ class ChatController extends Controller
                     $entry->save();
                 }
             }
-            
+
             // 4. Calculate similarities
             $similarities = [];
             foreach ($entries as $entry) {
@@ -52,29 +69,78 @@ class ChatController extends Controller
                         $queryEmbedding,
                         $entry->embedding
                     );
-                    
+
                     $similarities[] = [
                         'entry' => $entry,
                         'score' => $similarityScore
                     ];
                 }
             }
-            
+
             // 5. Sort and get top 10
             usort($similarities, fn($a, $b) => $b['score'] <=> $a['score']);
             $topSimilar = array_slice($similarities, 0, 10);
-            
+
             // 6. Build context
             $context = collect($topSimilar)
                 ->pluck('entry.content')
                 ->implode("\n---\n");
-            
+
             // 7. Generate answer
-            return $this->generateAnswer($query, $context);
-            
+            $answer = $this->generateAnswer($query, $context);
+
+            // Save assistant message
+            Messages::create([
+                'history_id' => $history->id,
+                'message' => $answer,
+                'sender' => 'assistant'
+            ]);
+
+            return [
+                'message' => $answer,
+                'history_id' => $history->id
+            ];
         } catch (Throwable $e) {
             return "Error: " . $e->getMessage();
         }
+    }
+
+    public function getHistory($historyId = null)
+    {
+        $user = Auth::user();
+
+        if ($historyId) {
+            $history = Histories::where('user_id', $user->id)
+                ->findOrFail($historyId);
+        } else {
+            $history = Histories::where('user_id', $user->id)
+                ->latest()
+                ->firstOrFail();
+        }
+
+        $messages = $history->messages()->orderBy('created_at')->get();
+
+        return [
+            'history_id' => $history->id,
+            'messages' => $messages
+        ];
+    }
+
+    public function createNewChat()
+    {
+        $user = Auth::user();
+        $newHistory = Histories::create(['user_id' => $user->id]);
+        return response()->json(['history_id' => $newHistory->id]);
+    }
+
+    public function getUserChatHistories()
+    {
+        $user = Auth::user();
+        $histories = Histories::where('user_id', $user->id)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return response()->json($histories);
     }
 
     private function generateEmbedding(string $text): array

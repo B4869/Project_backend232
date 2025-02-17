@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Plus, Send, SidebarOpen, SidebarClose, ChevronsUpDownIcon } from "lucide-react"
 import axios from "axios"
-import { router } from "@inertiajs/react"
 
 export default function Chat({ auth }) {
   const [showProfile, setShowProfile] = useState(false)
@@ -12,7 +11,6 @@ export default function Chat({ auth }) {
   const [loading, setLoading] = useState(false)
   const [showSidebar, setShowSidebar] = useState(true)
   const [currentHistoryId, setCurrentHistoryId] = useState(null)
-  const [chatHistories, setChatHistories] = useState([])
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -20,29 +18,14 @@ export default function Chat({ auth }) {
   }
 
   useEffect(() => {
-    fetchChatHistories()
+    fetchChatHistory()
   }, [])
 
-  useEffect(scrollToBottom, [messages]) // Updated dependency
+  useEffect(scrollToBottom, [messages]) // Updated useEffect dependency
 
-  const fetchChatHistories = async () => {
+  const fetchChatHistory = async (historyId = null) => {
     try {
-      const response = await axios.get("/chat/histories")
-      if (response.status === 200) {
-        setChatHistories(response.data)
-        if (response.data.length > 0 && !currentHistoryId) {
-          setCurrentHistoryId(response.data[0].id)
-          fetchChatHistory(response.data[0].id)
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching chat histories:", error)
-    }
-  }
-
-  const fetchChatHistory = async (historyId) => {
-    try {
-      const response = await axios.get(`/chat/history/${historyId}`)
+      const response = await axios.get(`/chat/history/${historyId || ""}`)
       if (response.status === 200) {
         setMessages(
           response.data.messages.map((msg) => ({
@@ -50,24 +33,10 @@ export default function Chat({ auth }) {
             sender: msg.sender,
           })),
         )
-        setCurrentHistoryId(historyId)
+        setCurrentHistoryId(response.data.history_id)
       }
     } catch (error) {
       console.error("Error fetching chat history:", error)
-    }
-  }
-
-  const createNewChat = async () => {
-    try {
-      const response = await axios.post("/chat/new")
-      if (response.status === 200) {
-        const newHistoryId = response.data.history_id
-        setCurrentHistoryId(newHistoryId)
-        setMessages([])
-        await fetchChatHistories()
-      }
-    } catch (error) {
-      console.error("Error creating new chat:", error)
     }
   }
 
@@ -84,12 +53,13 @@ export default function Chat({ auth }) {
       const csrfTokenElement = document.querySelector('meta[name="csrf-token"]')
       const csrfToken = csrfTokenElement ? csrfTokenElement.getAttribute("content") : ""
 
+      console.log("Sending message:", message) // Debug log
+
       const response = await axios.post(
         "/chat/ask",
         {
           model: "gpt-4o",
           content: message,
-          history_id: currentHistoryId,
         },
         {
           headers: {
@@ -99,11 +69,14 @@ export default function Chat({ auth }) {
         },
       )
 
+      console.log("API response:", response.data) // Debug log
+
       if (response.status === 200) {
         const data = response.data
-        const aiMessage = { text: data.message, sender: "assistant" }
+        const aiMessage = { text: data.message, sender: "assistant" } // Changed 'bot' to 'assistant'
+        console.log("AI message:", aiMessage) // Debug log
         setMessages((prevMessages) => [...prevMessages, aiMessage])
-        await fetchChatHistories()
+        setCurrentHistoryId(data.history_id)
       } else {
         throw new Error("API response was not ok.")
       }
@@ -113,7 +86,7 @@ export default function Chat({ auth }) {
         ...prevMessages,
         {
           text: `Error: ${error.response?.data?.message || error.message || "An unknown error occurred"}`,
-          sender: "assistant",
+          sender: "assistant", // Changed 'bot' to 'assistant'
         },
       ])
     }
@@ -124,12 +97,11 @@ export default function Chat({ auth }) {
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100 font-prompt overflow-hidden">
       <aside
-        className={`w-80 bg-gray-800 border-r border-gray-700 flex flex-col fixed h-full transition-transform duration-300 ease-in-out ${
-          showSidebar ? "translate-x-0" : "-translate-x-full"
-        } z-20`}
+        className={`w-80 bg-gray-800 border-r border-gray-700 flex flex-col fixed h-full transition-transform duration-300 ease-in-out ${showSidebar ? "translate-x-0" : "-translate-x-full"
+          } z-20`}
       >
         <div className="p-5 flex items-center justify-between border-b border-gray-700">
-          <button onClick={() => router.get(`/`)}>
+          <button onClick={() => router.push(`/`)}>
             <img src="/images/logo.png" alt="Logo" className="object-cover w-[180px]" />
           </button>
           <button
@@ -141,10 +113,7 @@ export default function Chat({ auth }) {
           </button>
         </div>
         <div className="px-4 py-8 pb-4">
-          <button
-            onClick={createNewChat}
-            className="font-semibold justify-center bg-indigo-600 px-4 py-[10px] rounded-lg text-white hover:bg-indigo-700 transition-colors flex items-center space-x-3"
-          >
+          <button className="font-semibold justify-center bg-indigo-600 px-4 py-[10px] rounded-lg text-white hover:bg-indigo-700 transition-colors flex items-center space-x-3">
             <Plus />
             <span>New Chat</span>
           </button>
@@ -152,15 +121,12 @@ export default function Chat({ auth }) {
         <div className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-2">
             <h2 className="text-md text-gray-400 font-semibold px-3 py-2">Recent Chats</h2>
-            {chatHistories.map((history) => (
+            {[1, 2, 3].map((item) => (
               <button
-                key={history.id}
-                onClick={() => fetchChatHistory(history.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
-                  currentHistoryId === history.id ? "bg-gray-700 text-white" : ""
-                }`}
+                key={item}
+                className="w-full text-left px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
               >
-                Chat {history.id}
+                บทสนทนาที่ {item}
               </button>
             ))}
           </div>
@@ -188,7 +154,7 @@ export default function Chat({ auth }) {
                   </div>
                   <button
                     onClick={() => {
-                      router.post("/logout")
+                      router.push("/logout")
                       setShowProfile(false)
                     }}
                     className="w-full bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition-colors"
@@ -207,23 +173,23 @@ export default function Chat({ auth }) {
         <header className="bg-gray-900 border-b border-gray-700 p-6 flex items-center relative">
           <button
             onClick={() => setShowSidebar(true)}
-            className={`text-gray-300 hover:text-white mr-4 absolute left-4 transition-opacity ${
-              showSidebar ? "opacity-0 duration-200" : "opacity-100 delay-300 duration-300"
-            }`}
+            className={`text-gray-300 hover:text-white mr-4 absolute left-4 transition-opacity ${showSidebar ? "opacity-0 duration-200" : "opacity-100 delay-300 duration-300"
+              }`}
             aria-label="Open sidebar"
           >
             <SidebarOpen className="w-6 h-6" />
           </button>
-          <p className="text-md flex-grow text-center">Chat {currentHistoryId}</p>
+          <p className="text-md flex-grow text-center">บทสนทนาที่</p>
         </header>
         <div className="flex-1 overflow-y-auto p-4 bg-gray-900 mt-6">
           <div className="space-y-6 max-w-3xl mx-auto">
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[80%] px-4 py-3 rounded-3xl ${
-                    msg.sender === "user" ? "bg-indigo-600 text-white" : "bg-gray-700 text-white"
-                  }`}
+                  className={`max-w-[80%] px-4 py-3 rounded-3xl ${msg.sender === "user"
+                      ? "bg-indigo-600 text-white"
+                      : "" // เพิ่มสไตล์สำหรับ assistant
+                    }`}
                 >
                   <p className="text-md">{msg.text}</p>
                 </div>
