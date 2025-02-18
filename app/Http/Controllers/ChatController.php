@@ -35,6 +35,10 @@ class ChatController extends Controller
             $historyId = $request->post('history_id');
             $user = Auth::user();
 
+            $messages = Messages::where('history_id', $historyId)
+                ->orderBy('id', 'asc')
+                ->get(['sender', 'message']);
+
             // ใช้ history_id ที่ส่งมา หรือสร้างใหม่ถ้าไม่มี
             $history = $historyId
                 ? Histories::findOrFail($historyId)
@@ -84,10 +88,18 @@ class ChatController extends Controller
             // 6. Build context
             $context = collect($topSimilar)
                 ->pluck('entry.content')
-                ->implode("\n---\n");
+                ->map(fn($content) => "- $content")
+                ->implode("\n\n");
+
+            $historyMessages = $messages->map(function ($message) {
+                return [
+                    'role' => $message->sender,
+                    'content' => $message->message
+                ];
+            })->values()->all();
 
             // 7. Generate answer
-            $answer = $this->generateAnswer($query, $context);
+            $answer = $this->generateAnswer($query, $context, $historyMessages);
 
             // Save assistant message
             Messages::create([
@@ -176,7 +188,7 @@ class ChatController extends Controller
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
             'Content-Type' => 'application/json',
         ])->post('https://api.openai.com/v1/embeddings', [
-            'model' => 'text-embedding-3-small',
+            'model' => 'text-embedding-ada-002',
             'input' => $text,
         ]);
 
@@ -206,10 +218,11 @@ class ChatController extends Controller
         return $magA && $magB ? $dotProduct / ($magA * $magB) : 0;
     }
 
-    private function generateAnswer(string $query, string $context): string
+    private function generateAnswer(string $query, string $context, array $historyMessages): string
     {
         $messages = [
             ...$this->prompt,
+            ...$historyMessages,
             ['role' => 'assistant', 'content' => $context],
             ['role' => 'user', 'content' => $query]
         ];
@@ -218,7 +231,8 @@ class ChatController extends Controller
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
             'Content-Type' => 'application/json',
         ])->post('https://api.openai.com/v1/chat/completions', [
-            'model' => 'gpt-4o',
+            // 'model' => 'chatgpt-4o-latest',
+            'model' => 'gpt-3.5-turbo',
             'messages' => $messages,
             'temperature' => 0.7,
         ]);

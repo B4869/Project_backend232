@@ -125,7 +125,7 @@ const FormattedMessage = ({ content, isUser = false }) => {
   }
 
   return (
-    <div className={`max-w-[90%] px-4 py-3 rounded-lg ${isUser ? "bg-indigo-600 text-white" : ""}`}>
+    <div className={`max-w-[90%] px-4 py-3 rounded-3xl ${isUser ? "bg-indigo-600 text-white" : ""}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}

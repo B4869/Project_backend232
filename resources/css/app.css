@@ -37,3 +37,16 @@ input[type="password"]::-webkit-contacts-auto-fill-button {
     margin: 0 !important;
     justify-content: flex-end !important;
 }
+
+/* ซ่อน scrollbar สำหรับ Chrome, Safari และ Opera */
+*::-webkit-scrollbar {
+    display: none;
+}
+
+/* ซ่อน scrollbar สำหรับ IE, Edge และ Firefox */
+* {
+    -ms-overflow-style: none;
+    /* IE และ Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
