@@ -1,0 +1,64 @@
+### huggingface ###
+private function generateAnswer(string $query, string $context, array $historyMessages): string
+    {
+        $messages = [
+            ...$this->prompt,
+            ...$historyMessages,
+            ['role' => 'assistant', 'content' => $context],
+            ['role' => 'user', 'content' => $query],
+        ];
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('HF_TOKEN'),
+            'Content-Type' => 'application/json',
+        ])->post('https://router.huggingface.co/together/v1/chat/completions', [
+            'model' => 'deepseek-ai/DeepSeek-R1',
+            'messages' => $messages,
+        ]);
+
+        if ($response->failed()) {
+            $errorData = $response->json();
+            throw new \Exception('OpenRouter API Error: ' . ($errorData['error']['message'] ?? 'Unknown error'));
+        }
+
+        $responseData = $response->json();
+        if (isset($responseData['choices'][0]['message']['content'])) {
+            $content = $responseData['choices'][0]['message']['content'];
+            list($thinking, $response) = explode("</think>\n", $content);
+            return $response;
+        } else {
+            throw new \Exception('Unexpected response format from OpenRouter API.');
+        }
+    }
+
+
+### OpenRouter ###
+private function generateAnswer(string $query, string $context, array $historyMessages): string
+    {
+        $messages = [
+            ...$this->prompt,
+            ...$historyMessages,
+            ['role' => 'assistant', 'content' => $context],
+            ['role' => 'user', 'content' => $query],
+        ];
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENROUTER_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post('https://openrouter.ai/api/v1/chat/completions', [
+            'model' => 'deepseek/deepseek-r1-distill-llama-70b:free',
+            'messages' => $messages,
+        ]);
+
+        if ($response->failed()) {
+            $errorData = $response->json();
+            throw new \Exception('OpenRouter API Error: ' . ($errorData['error']['message'] ?? 'Unknown error'));
+        }
+
+        $responseData = $response->json();
+        if (isset($responseData['choices'][0]['message']['content'])) {
+            return $responseData['choices'][0]['message']['content'];
+        } else {
+            throw new \Exception('Unexpected response format from OpenRouter API.');
+        }
+    }

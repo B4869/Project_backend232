@@ -12,9 +12,4 @@ class Messages extends Model
     {
         return $this->belongsTo(Histories::class, 'history_id');
     }
-
-    public function feedback()
-    {
-        return $this->belongsTo(Feedbacks::class, 'message_id');
-    }
 }

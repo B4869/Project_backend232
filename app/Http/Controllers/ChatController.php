@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\KnowledgeBases;
 use App\Models\Histories;
 use App\Models\Messages;
+use App\Models\RuleBases;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Throwable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ChatController extends Controller
 {
@@ -18,15 +20,6 @@ class ChatController extends Controller
     {
         return Inertia::render('ChatBot/Chat', []);
     }
-
-
-    // chatbot controller
-    private array $prompt = [
-        [
-            'role' => 'system',
-            'content' => 'Answer the question using the provided context. If unsure, say you don\'t know. Keep answers concise.'
-        ]
-    ];
 
     public function ask(Request $request): array
     {
@@ -53,6 +46,8 @@ class ChatController extends Controller
 
             // 1. Generate query embedding
             $queryEmbedding = $this->generateEmbedding($query);
+
+            // Log::info($queryEmbedding); debug embed
 
             // 2. Retrieve and process dataset
             $entries = KnowledgeBases::all();
@@ -83,7 +78,9 @@ class ChatController extends Controller
 
             // 5. Sort and get top 10
             usort($similarities, fn($a, $b) => $b['score'] <=> $a['score']);
-            $topSimilar = array_slice($similarities, 0, 10);
+            $topSimilar = array_slice($similarities, 0, 5);
+
+            // Log::info($topSimilar);
 
             // 6. Build context
             $context = collect($topSimilar)
@@ -182,13 +179,29 @@ class ChatController extends Controller
         }
     }
 
+    // private function generateEmbedding(string $text): array
+    // {
+    //     $response = Http::withHeaders([
+    //         'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+    //         'Content-Type' => 'application/json',
+    //     ])->post('https://api.openai.com/v1/embeddings', [
+    //         'model' => 'text-embedding-ada-002',
+    //         'input' => $text,
+    //     ]);
+
+    //     if ($response->failed()) {
+    //         throw new \Exception('Embedding Error: ' . $response->json()['error']['message']);
+    //     }
+
+    //     return $response->json()['data'][0]['embedding'];
+    // }
+
     private function generateEmbedding(string $text): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            // 'Authorization' => 'Bearer ' . env('HF_TOKEN'),
             'Content-Type' => 'application/json',
-        ])->post('https://api.openai.com/v1/embeddings', [
-            'model' => 'text-embedding-ada-002',
+        ])->post('https://640510702phithak-text-embedding-api.hf.space/embed', [
             'input' => $text,
         ]);
 
@@ -196,7 +209,7 @@ class ChatController extends Controller
             throw new \Exception('Embedding Error: ' . $response->json()['error']['message']);
         }
 
-        return $response->json()['data'][0]['embedding'];
+        return $response->json()['embedding'];
     }
 
     private function cosineSimilarity(array $vecA, array $vecB): float
@@ -220,27 +233,35 @@ class ChatController extends Controller
 
     private function generateAnswer(string $query, string $context, array $historyMessages): string
     {
+        $rule_base = RuleBases::value('rule');
+        // Log::info($rule_base);
+
         $messages = [
-            ...$this->prompt,
+            ['role' => 'system', 'content' => $rule_base],
             ...$historyMessages,
             ['role' => 'assistant', 'content' => $context],
-            ['role' => 'user', 'content' => $query]
+            ['role' => 'user', 'content' => $query],
         ];
 
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            'Authorization' => 'Bearer ' . env('OPENROUTER_API_KEY'),
             'Content-Type' => 'application/json',
-        ])->post('https://api.openai.com/v1/chat/completions', [
-            // 'model' => 'chatgpt-4o-latest',
-            'model' => 'gpt-3.5-turbo',
+        ])->post('https://openrouter.ai/api/v1/chat/completions', [
+            'model' => 'google/gemini-2.0-flash-lite-preview-02-05:free',
             'messages' => $messages,
-            'temperature' => 0.7,
         ]);
 
         if ($response->failed()) {
-            throw new \Exception('GPT Error: ' . $response->json()['error']['message']);
+            $errorData = $response->json();
+            throw new \Exception('OpenRouter API Error: ' . ($errorData['error']['message'] ?? 'Unknown error'));
         }
 
-        return $response->json()['choices'][0]['message']['content'];
+        $responseData = $response->json();
+        Log::info($responseData['choices'][0]['message']['content']);
+        if (isset($responseData['choices'][0]['message']['content'])) {
+            return $responseData['choices'][0]['message']['content'];
+        } else {
+            throw new \Exception('Unexpected response format from OpenRouter API.');
+        }
     }
 }

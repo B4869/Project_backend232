@@ -3,26 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\KnowledgeBases;
+use App\Models\RuleBases;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class FontendController extends Controller
 {
-    //
+    //show screen
     public function chatIndex()
     {
         return Inertia::render('ChatBot/Chat', []);
     }
 
-    public function uploadDataIndex()
+    public function adminIndex()
     {
-        return Inertia::render('UploadData', []);
+        $rule_base = RuleBases::get();
+
+        return Inertia::render('Admin', ["rule_bases" => $rule_base]);
     }
+
+
+
 
     public function uploadDataStore(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:json',
+            'file' => 'required|file',
         ]);
 
         $json = file_get_contents($request->file('file')->getRealPath());
@@ -48,5 +54,43 @@ class FontendController extends Controller
         } else {
             return back()->with('error', 'Please try again.');
         }
+    }
+
+
+    
+
+    public function storeRuleBase(Request $request)
+    {
+        $request->validate([
+            'rule' => 'required|string'
+        ]);
+
+        $ruleBase = RuleBases::create([
+            'rule' => $request->rule
+        ]);
+
+        return redirect()->back()->with('success', 'Rule created successfully');
+    }
+
+    public function updateRuleBase(Request $request, $id)
+    {
+        $request->validate([
+            'rule' => 'required|string'
+        ]);
+
+        $ruleBase = RuleBases::findOrFail($id);
+        $ruleBase->update([
+            'rule' => $request->rule
+        ]);
+
+        return redirect()->back()->with('success', 'Rule updated successfully');
+    }
+
+    public function destroyRuleBase($id)
+    {
+        $ruleBase = RuleBases::findOrFail($id);
+        $ruleBase->delete();
+
+        return redirect()->back()->with('success', 'Rule deleted successfully');
     }
 }

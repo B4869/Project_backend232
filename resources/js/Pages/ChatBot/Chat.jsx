@@ -18,6 +18,20 @@ export default function Chat({ auth, flash }) {
   const [currentChatId, setCurrentChatId] = useState(null)
   const [chatName, setChatName] = useState("New Chat")
   const messagesEndRef = useRef(null)
+  const textareaRef = useRef(null)
+
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      const newHeight = Math.min(textarea.scrollHeight, 200) // จำกัดความสูงสูงสุดที่ 200px
+      textarea.style.height = `${newHeight}px`
+    }
+  }
+
+  useEffect(() => {
+    adjustTextareaHeight()
+  }, [message])
 
   const handleDelete = (id) => {
     Swal.fire({
@@ -39,7 +53,7 @@ export default function Chat({ auth, flash }) {
     }).then((result) => {
       if (result.isConfirmed) {
         router.delete(`/chat/${id}`)
-        window.location.reload();
+        window.location.reload()
       }
     })
   }
@@ -52,7 +66,7 @@ export default function Chat({ auth, flash }) {
     fetchChatHistories()
   }, [message])
 
-  useEffect(scrollToBottom, [loading])
+  useEffect(scrollToBottom, [])
 
   const fetchChatHistories = async () => {
     try {
@@ -117,7 +131,6 @@ export default function Chat({ auth, flash }) {
       const response = await axios.post(
         "/chat/ask",
         {
-          model: "gpt-4o",
           content: message,
           history_id: currentChatId,
         },
@@ -169,7 +182,7 @@ export default function Chat({ auth, flash }) {
         >
           <div className="p-5 flex items-center justify-between border-b border-gray-700">
             <button onClick={() => router.get(`/`)}>
-              <img src="/images/logo.png" alt="Logo" className="object-cover w-[180px]" />
+              <img src="/images/logo2.png" alt="Logo" className="object-cover w-[180px]" />
             </button>
             <button
               onClick={() => setShowSidebar(false)}
@@ -260,7 +273,12 @@ export default function Chat({ auth, flash }) {
             <div className="space-y-6 max-w-3xl mx-auto">
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                  <FormattedMessage content={msg.text} isUser={msg.sender === "user"} />
+                  <div
+                    className={`rounded-lg ${msg.sender === "user" ? "bg-indigo-600 text-white" : ""
+                      }`}
+                  >
+                    <FormattedMessage content={msg.text} />
+                  </div>
                 </div>
               ))}
               {loading && (
@@ -282,25 +300,35 @@ export default function Chat({ auth, flash }) {
             </div>
           </div>
 
-          <div className="p-4 mb-2">
+          <div className="p-4 pt-0 mb-2 bg-transparent">
             <form onSubmit={sendMessage} className="max-w-3xl mx-auto">
-              <div className="flex gap-3">
-                <input
-                  type="text"
+              <div className="flex gap-2"> {/* ลด gap ลงเป็น 2 */}
+                <textarea
+                  ref={textareaRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="flex-1 bg-gray-800 text-white border border-gray-700 rounded-full px-6 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage(e);
+                    }
+                  }}
+                  rows={1}
+                  className="flex-1 bg-gray-800 text-white border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none min-h-[48px] max-h-[200px] overflow-y-auto"
                   placeholder="พิมพ์ข้อความของคุณ..."
                   disabled={loading}
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-indigo-600 text-white px-6 py-3 rounded-full hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="h-12 w-12 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
                   aria-label="ส่ง"
                 >
                   <Send className="w-5 h-5" />
                 </button>
+              </div>
+              <div className="mt-2 text-center text-xs text-gray-400">
+                คำตอบที่ได้ค่อนข้างมีความหลอนเป็นอย่างมาก ควรเช็คคำตอบก่อนนำไปใช้
               </div>
             </form>
           </div>
@@ -309,3 +337,4 @@ export default function Chat({ auth, flash }) {
     </>
   )
 }
+

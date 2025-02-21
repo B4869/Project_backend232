@@ -59,15 +59,30 @@ export default function Homepage({ flash, auth }) {
             </span>
             <div className="flex gap-8">
               {auth.user ? (
-                <button
-                  className="relative transition-all duration-300 transform hover:scale-105 group"
-                  onClick={() => router.post(`/logout`)}
-                >
-                  <img src="/images/logout.png" className="object-cover w-[100px] group-hover:hidden" />
-                  <img src="/images/logout-hover.png" className="object-cover w-[100px] hidden group-hover:block" />
-                </button>
+                <>
+                  {/* ถ้าเป็น admin จะแสดงปุ่ม admin */}
+                  {auth.admin && (
+                    <button
+                      className="relative transition-all duration-300 transform hover:scale-105 group"
+                      onClick={() => router.get(`/admin`)}
+                    >
+                      <img src="/images/admin.png" className="object-cover w-[180px] group-hover:hidden" />
+                      <img src="/images/admin-hover.png" className="object-cover w-[180px] hidden group-hover:block" />
+                    </button>
+                  )}
+
+                  {/* ปุ่ม Logout สำหรับทุกคนที่ login แล้ว */}
+                  <button
+                    className="relative transition-all duration-300 transform hover:scale-105 group"
+                    onClick={() => router.post(`/logout`)}
+                  >
+                    <img src="/images/logout.png" className="object-cover w-[100px] group-hover:hidden" />
+                    <img src="/images/logout-hover.png" className="object-cover w-[100px] hidden group-hover:block" />
+                  </button>
+                </>
               ) : (
                 <>
+                  {/* ส่วนของคนที่ยังไม่ได้ login */}
                   <button
                     className="relative transition-all duration-300 transform hover:scale-105 group"
                     onClick={() => router.get(`/login`)}

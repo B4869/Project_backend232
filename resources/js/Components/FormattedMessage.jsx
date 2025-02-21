@@ -64,7 +64,7 @@ const CodeBlock = memo(({ language, children }) => {
 
 CodeBlock.displayName = "CodeBlock"
 
-const FormattedMessage = ({ content, isUser = false }) => {
+const FormattedMessage = ({ content, className = "" }) => {
   const components = {
     code({ inline, className, children, ...props }) {
       const match = /language-(\w+)/.exec(className || "")
@@ -73,7 +73,7 @@ const FormattedMessage = ({ content, isUser = false }) => {
       return !inline && language ? (
         <CodeBlock language={language}>{children}</CodeBlock>
       ) : (
-        <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm font-mono break-words" {...props}>
+        <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm font-mono break-words text-white" {...props}>
           {children}
         </code>
       )
@@ -83,33 +83,31 @@ const FormattedMessage = ({ content, isUser = false }) => {
     ol: ({ children }) => <ol className="list-decimal pl-6 mb-4 last:mb-0 space-y-2">{children}</ol>,
     li: ({ children }) => <li className="mb-1 last:mb-0">{children}</li>,
     blockquote: ({ children }) => (
-      <blockquote className="border-l-4 border-gray-600 pl-4 py-1 my-4 bg-gray-700 rounded-r-md">{children}</blockquote>
+      <blockquote className="border-l-4 border-gray-300 pl-4 py-1 my-4 bg-gray-50 rounded-r-md">{children}</blockquote>
     ),
     h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 mt-6">{children}</h1>,
     h2: ({ children }) => <h2 className="text-xl font-bold mb-3 mt-5">{children}</h2>,
     h3: ({ children }) => <h3 className="text-lg font-bold mb-2 mt-4">{children}</h3>,
     table: ({ children }) => (
       <div className="overflow-x-auto my-4">
-        <table className="min-w-full divide-y divide-gray-700 border border-gray-700 rounded-md">{children}</table>
+        <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md">{children}</table>
       </div>
     ),
-    thead: ({ children }) => <thead className="bg-gray-700">{children}</thead>,
-    tbody: ({ children }) => <tbody className="divide-y divide-gray-700">{children}</tbody>,
-    tr: ({ children }) => <tr className="hover:bg-gray-800 transition-colors">{children}</tr>,
+    thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
+    tbody: ({ children }) => <tbody className="divide-y divide-gray-200">{children}</tbody>,
+    tr: ({ children }) => <tr className="transition-colors hover:bg-gray-50">{children}</tr>,
     th: ({ children }) => (
-      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-300 border-r last:border-r-0 border-gray-700">
-        {children}
-      </th>
+      <th className="px-4 py-2 text-left text-sm font-semibold border-r last:border-r-0 border-gray-200">{children}</th>
     ),
     td: ({ children }) => (
-      <td className="px-4 py-2 text-sm whitespace-pre-wrap border-r last:border-r-0 border-gray-700">{children}</td>
+      <td className="px-4 py-2 text-sm whitespace-pre-wrap border-r last:border-r-0 border-gray-200">{children}</td>
     ),
     a: ({ children, href }) => (
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-400 hover:text-blue-300 underline transition-colors"
+        className="text-blue-600 hover:text-blue-500 underline transition-colors"
       >
         {children}
       </a>
@@ -125,7 +123,7 @@ const FormattedMessage = ({ content, isUser = false }) => {
   }
 
   return (
-    <div className={`max-w-[90%] px-4 py-3 rounded-3xl ${isUser ? "bg-indigo-600 text-white" : ""}`}>
+    <div className={`w-full px-4 py-3 ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}
@@ -139,7 +137,7 @@ const FormattedMessage = ({ content, isUser = false }) => {
 
 FormattedMessage.propTypes = {
   content: PropTypes.string.isRequired,
-  isUser: PropTypes.bool,
+  className: PropTypes.string,
 }
 
 export default memo(FormattedMessage)
