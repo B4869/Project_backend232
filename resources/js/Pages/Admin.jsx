@@ -162,7 +162,7 @@ export default function Admin({ flash, rule_bases }) {
           <div className="w-full">
             <h3 className="text-center text-3xl font-extrabold text-gray-900 mb-8">Rule Base</h3>
             <div className="bg-white border-none shadow-2xl rounded-xl p-8">
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {isAddingRule && (
                   <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-300 border-dashed">
                     <form onSubmit={handleCreateSubmit} className="space-y-4">

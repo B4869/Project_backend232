@@ -274,7 +274,9 @@ export default function Chat({ auth, flash }) {
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`rounded-lg ${msg.sender === "user" ? "bg-indigo-600 text-white" : ""
+                    className={`rounded-lg max-w-3xl break-words ${msg.sender === "user"
+                      ? "bg-indigo-600 text-white"
+                      : "text-white"
                       }`}
                   >
                     <FormattedMessage content={msg.text} />
@@ -283,7 +285,7 @@ export default function Chat({ auth, flash }) {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="px-4 py-6">
+                  <div className="rounded-lg px-4 py-3 max-w-3xl">
                     <div className="flex space-x-1">
                       {[0, 0.1, 0.2].map((delay, i) => (
                         <div

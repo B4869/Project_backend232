@@ -37,6 +37,7 @@
         "react-markdown": "^9.0.3",
         "react-syntax-highlighter": "^15.6.1",
         "remark-gfm": "^4.0.1",
+        "remark-markdown": "^0.0.1",
         "sweetalert2": "^11.17.2"
     }
 }

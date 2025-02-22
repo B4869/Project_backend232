@@ -90,35 +90,23 @@ const FormattedMessage = ({ content, className = "" }) => {
     h3: ({ children }) => <h3 className="text-lg font-bold mb-2 mt-4">{children}</h3>,
     table: ({ children }) => (
       <div className="overflow-x-auto my-4">
-        <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md">{children}</table>
+        <table className="min-w-full divide-y divide-gray-700 border border-gray-700 rounded-md bg-[#1e1e1e]">
+          {children}
+        </table>
       </div>
     ),
-    thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
-    tbody: ({ children }) => <tbody className="divide-y divide-gray-200">{children}</tbody>,
-    tr: ({ children }) => <tr className="transition-colors hover:bg-gray-50">{children}</tr>,
+    thead: ({ children }) => <thead className="bg-[#181818]">{children}</thead>,
+    tbody: ({ children }) => <tbody className="divide-y divide-gray-700">{children}</tbody>,
+    tr: ({ children }) => <tr className="transition-colors hover:bg-gray-800">{children}</tr>,
     th: ({ children }) => (
-      <th className="px-4 py-2 text-left text-sm font-semibold border-r last:border-r-0 border-gray-200">{children}</th>
+      <th className="px-4 py-4 text-left text-sm font-semibold text-white border-r last:border-r-0 border-gray-700">
+        {children}
+      </th>
     ),
     td: ({ children }) => (
-      <td className="px-4 py-2 text-sm whitespace-pre-wrap border-r last:border-r-0 border-gray-200">{children}</td>
-    ),
-    a: ({ children, href }) => (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-600 hover:text-blue-500 underline transition-colors"
-      >
+      <td className="px-4 py-2 text-sm text-gray-300 whitespace-pre-wrap border-r last:border-r-0 border-gray-700">
         {children}
-      </a>
-    ),
-    img: ({ src, alt }) => (
-      <img
-        src={src || "/placeholder.svg"}
-        alt={alt || "Embedded content"}
-        className="max-w-full h-auto rounded-md my-4"
-        loading="lazy"
-      />
+      </td>
     ),
   }
 

@@ -52,6 +52,8 @@ class ChatController extends Controller
             // 2. Retrieve and process dataset
             $entries = KnowledgeBases::all();
 
+            // Log::info($entries->first()->content); 
+
             // 3. Generate missing embeddings
             foreach ($entries as $entry) {
                 if (!$entry->embedding && $entry->content) {
@@ -76,24 +78,34 @@ class ChatController extends Controller
                 }
             }
 
+            // Log::info(collect($similarities)->map(fn($similarity) => [
+            //     'id' => $similarity['entry']->id,
+            //     'content' => $similarity['entry']->content
+            // ]));
+
             // 5. Sort and get top 10
             usort($similarities, fn($a, $b) => $b['score'] <=> $a['score']);
-            $topSimilar = array_slice($similarities, 0, 5);
+            $topSimilar = array_slice($similarities, 0, 10);
 
             // Log::info($topSimilar);
 
             // 6. Build context
             $context = collect($topSimilar)
                 ->pluck('entry.content')
-                ->map(fn($content) => "- $content")
+                ->map(fn($content) => "-> $content")
                 ->implode("\n\n");
 
-            $historyMessages = $messages->map(function ($message) {
+            // Log::info($context);
+
+            $historyMessages = $messages->take(-4)->map(function ($message) {
                 return [
                     'role' => $message->sender,
                     'content' => $message->message
                 ];
             })->values()->all();
+
+
+            // Log::info($historyMessages);
 
             // 7. Generate answer
             $answer = $this->generateAnswer($query, $context, $historyMessages);
@@ -243,6 +255,8 @@ class ChatController extends Controller
             ['role' => 'user', 'content' => $query],
         ];
 
+        Log::info($messages);
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('OPENROUTER_API_KEY'),
             'Content-Type' => 'application/json',
@@ -257,7 +271,7 @@ class ChatController extends Controller
         }
 
         $responseData = $response->json();
-        Log::info($responseData['choices'][0]['message']['content']);
+        // Log::info($responseData['choices'][0]['message']['content']);
         if (isset($responseData['choices'][0]['message']['content'])) {
             return $responseData['choices'][0]['message']['content'];
         } else {
