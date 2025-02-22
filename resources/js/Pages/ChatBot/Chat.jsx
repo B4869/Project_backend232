@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useRef, useEffect } from "react"
 import { Plus, Send, SidebarOpen, SidebarClose, ChevronsUpDownIcon, Trash2 } from "lucide-react"
 import axios from "axios"
@@ -9,7 +7,7 @@ import Swal from "sweetalert2"
 import FormattedMessage from "@/Components/FormattedMessage"
 
 export default function Chat({ auth, flash }) {
-  const [showProfile, setShowProfile] = useState(false)
+  // ===== State Management =====
   const [messages, setMessages] = useState([])
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
@@ -17,23 +15,105 @@ export default function Chat({ auth, flash }) {
   const [chatHistories, setChatHistories] = useState([])
   const [currentChatId, setCurrentChatId] = useState(null)
   const [chatName, setChatName] = useState("New Chat")
+  const [showProfile, setShowProfile] = useState(false)
+
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
-  const adjustTextareaHeight = () => {
+  /* ===== API Functions ===== */
+  const sendMessage = async (content, historyId) => {
+    const csrfTokenElement = document.querySelector('meta[name="csrf-token"]')
+    const csrfToken = csrfTokenElement ? csrfTokenElement.getAttribute("content") : ""
+
+    return axios.post("/chat/ask", { content, history_id: historyId }, { headers: { "X-CSRF-TOKEN": csrfToken } })
+  }
+
+  /* ===== Effects & Handlers ===== */
+  useEffect(() => {
+    const fetchChatHistories = async () => {
+      try {
+        const response = await axios.get("/chat/histories")
+        const histories = response.data
+        setChatHistories(histories)
+        if (histories.length > 0 && !currentChatId) {
+          const response = await axios.get(`/chat/history/${histories[0].id}`)
+          const data = response.data
+          setMessages(
+            data.messages.map((msg) => ({
+              text: msg.message,
+              sender: msg.sender,
+            })),
+          )
+          setChatName(data.chat_name)
+          setCurrentChatId(histories[0].id)
+        }
+      } catch (error) {
+        console.error("Error fetching chat histories:", error)
+      }
+    }
+    fetchChatHistories()
+  }, [currentChatId])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  useEffect(() => {
     const textarea = textareaRef.current
     if (textarea) {
-      textarea.style.height = 'auto'
-      const newHeight = Math.min(textarea.scrollHeight, 200) // จำกัดความสูงสูงสุดที่ 200px
-      textarea.style.height = `${newHeight}px`
+      textarea.style.height = "auto"
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`
+    }
+  }, [message])
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault()
+    if (message.trim() === "") return
+
+    setMessages((prev) => [...prev, { text: message, sender: "user" }])
+    setMessage("")
+    setLoading(true)
+
+    try {
+      const response = await sendMessage(message, currentChatId)
+      const data = response.data
+      setMessages((prev) => [...prev, { text: data.message, sender: "assistant" }])
+
+      if (chatName === "New Chat") {
+        const newChatName = message.substring(0, 50)
+        setChatName(newChatName)
+        setChatHistories((prev) =>
+          prev.map((history) => (history.id === currentChatId ? { ...history, chat_name: newChatName } : history)),
+        )
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: `Error: ${error.response?.data?.message || error.message || "An unknown error occurred"}`,
+          sender: "assistant",
+        },
+      ])
+    } finally {
+      setLoading(false)
     }
   }
 
-  useEffect(() => {
-    adjustTextareaHeight()
-  }, [message])
+  const handleNewChat = async () => {
+    try {
+      const response = await axios.post("/chat/new")
+      setMessages([])
+      setChatName("New Chat")
+      setCurrentChatId(response.data.history_id)
+      const historiesResponse = await axios.get("/chat/histories")
+      setChatHistories(historiesResponse.data)
+    } catch (error) {
+      console.error("Error creating new chat:", error)
+    }
+  }
 
-  const handleDelete = (id) => {
+  const handleDeleteChat = (id) => {
     Swal.fire({
       title: "Delete chat?",
       text: "The chat will be deleted and removed from your chat history. This action cannot be undone.",
@@ -58,186 +138,100 @@ export default function Chat({ auth, flash }) {
     })
   }
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  useEffect(() => {
-    fetchChatHistories()
-  }, [message])
-
-  useEffect(scrollToBottom, [])
-
-  const fetchChatHistories = async () => {
-    try {
-      const response = await axios.get("/chat/histories")
-      if (response.status === 200) {
-        setChatHistories(response.data)
-        if (response.data.length > 0 && !currentChatId) {
-          fetchChatHistory(response.data[0].id)
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching chat histories:", error)
-    }
-  }
-
   const fetchChatHistory = async (historyId) => {
     try {
       const response = await axios.get(`/chat/history/${historyId}`)
-      if (response.status === 200) {
-        setMessages(
-          response.data.messages.map((msg) => ({
-            text: msg.message,
-            sender: msg.sender,
-          })),
-        )
-        setChatName(response.data.chat_name)
-        setCurrentChatId(historyId)
-      }
+      const data = response.data
+      setMessages(
+        data.messages.map((msg) => ({
+          text: msg.message,
+          sender: msg.sender,
+        })),
+      )
+      setChatName(data.chat_name)
+      setCurrentChatId(historyId)
     } catch (error) {
       console.error("Error fetching chat history:", error)
     }
   }
 
-  const createNewChat = async () => {
-    try {
-      const response = await axios.post("/chat/new")
-      if (response.status === 200) {
-        const newHistoryId = response.data.history_id
-        setMessages([])
-        setChatName("New Chat")
-        setCurrentChatId(newHistoryId)
-        await fetchChatHistories()
-      }
-    } catch (error) {
-      console.error("Error creating new chat:", error)
-    }
-  }
-
-  const sendMessage = async (e) => {
-    e.preventDefault()
-    if (message.trim() === "") return
-
-    const userMessage = { text: message, sender: "user" }
-    setMessages((prevMessages) => [...prevMessages, userMessage])
-    setMessage("")
-    setLoading(true)
-
-    try {
-      const csrfTokenElement = document.querySelector('meta[name="csrf-token"]')
-      const csrfToken = csrfTokenElement ? csrfTokenElement.getAttribute("content") : ""
-
-      const response = await axios.post(
-        "/chat/ask",
-        {
-          content: message,
-          history_id: currentChatId,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRF-TOKEN": csrfToken,
-          },
-        },
-      )
-
-      if (response.status === 200) {
-        const data = response.data
-        const aiMessage = { text: data.message, sender: "assistant" }
-        setMessages((prevMessages) => [...prevMessages, aiMessage])
-        if (chatName === "New Chat") {
-          const newChatName = message.substring(0, 50)
-          setChatName(newChatName)
-          setChatHistories((prevHistories) =>
-            prevHistories.map((history) =>
-              history.id === currentChatId ? { ...history, chat_name: newChatName } : history,
-            ),
-          )
-        }
-      } else {
-        throw new Error("API response was not ok.")
-      }
-    } catch (error) {
-      console.error("Error:", error)
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          text: `Error: ${error.response?.data?.message || error.message || "An unknown error occurred"}`,
-          sender: "assistant",
-        },
-      ])
-    }
-
-    setLoading(false)
-  }
-
   return (
     <>
       <FlashMessage flash={flash} />
-      <div className="flex h-screen bg-gray-900 text-gray-100 font-prompt overflow-hidden">
+      <div className="flex h-screen bg-gray-900 text-gray-100 font-prompt overflow-hidden relative">
+        {/* ===== Sidebar ===== */}
         <aside
-          className={`w-80 bg-gray-800 border-r border-gray-700 flex flex-col fixed h-full transition-transform duration-300 ease-in-out ${showSidebar ? "translate-x-0" : "-translate-x-full"
+          className={`w-80 md:w-72 lg:w-80 bg-gray-800 border-r border-gray-700 flex flex-col fixed h-full transition-transform duration-300 ease-in-out ${showSidebar ? "translate-x-0" : "-translate-x-full"
             } z-20`}
         >
+          {/* Sidebar Header */}
           <div className="p-5 flex items-center justify-between border-b border-gray-700">
             <button onClick={() => router.get(`/`)}>
-              <img src="/images/logo2.png" alt="Logo" className="object-cover w-[180px]" />
+              <img src="/images/logo2.png" alt="Logo" className="object-cover w-[140px] sm:w-[180px]" />
             </button>
-            <button
-              onClick={() => setShowSidebar(false)}
-              className="text-gray-300 hover:text-white focus:outline-none"
-              aria-label="Close sidebar"
-            >
-              <SidebarClose className="w-6 h-6" />
+            <button onClick={() => setShowSidebar(false)} className="text-gray-300 hover:text-white focus:outline-none">
+              <SidebarClose className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
+
+          {/* New Chat Button */}
           <div className="px-4 py-8 pb-4">
             <button
-              onClick={createNewChat}
-              className="font-semibold justify-center bg-indigo-600 px-4 py-[10px] rounded-lg text-white hover:bg-indigo-700 transition-colors flex items-center space-x-3"
+              onClick={handleNewChat}
+              className="font-semibold justify-center bg-indigo-600 px-3 sm:px-4 py-2 sm:py-[10px] rounded-lg text-white hover:bg-indigo-700 transition-colors flex items-center space-x-2 sm:space-x-3 w-full text-sm sm:text-base"
             >
-              <Plus />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>New Chat</span>
             </button>
           </div>
+
+          {/* Chat History */}
           <div className="flex-1 overflow-y-auto py-4 px-3">
             <div className="space-y-2">
-              <h2 className="text-md text-gray-400 font-semibold px-3 py-2">Recent Chats</h2>
+              <h2 className="text-sm sm:text-md text-gray-400 font-semibold px-2 sm:px-3 py-2">Recent Chats</h2>
               {chatHistories.map((history) => (
                 <button
                   key={history.id}
                   onClick={() => fetchChatHistory(history.id)}
-                  className={`w-full flex justify-between items-center text-left px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${currentChatId === history.id ? "bg-gray-700 text-white" : ""
+                  className={`w-full flex justify-between items-center text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors text-sm sm:text-base ${currentChatId === history.id ? "bg-gray-700 text-white" : ""
                     }`}
                 >
                   <span>{history.chat_name}</span>
-                  <button onClick={() => handleDelete(history.id)}>
-                    <Trash2 className="h-4 w-4" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteChat(history.id)
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                   </button>
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Profile Section */}
           <div className="border-t border-gray-700 relative">
             <button onClick={() => setShowProfile(!showProfile)} className="w-full">
               <div className="p-4 py-3 flex items-center relative justify-between hover:bg-gray-700 hover:text-white transition-color">
                 <div className="flex items-center relative">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-600 to-purple-500 flex-shrink-0" />
-                  <span className="ml-3 text-lg">My Profile</span>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-indigo-600 to-purple-500 flex-shrink-0" />
+                  <span className="ml-2 sm:ml-3 text-base sm:text-lg">My Profile</span>
                 </div>
-                <ChevronsUpDownIcon className={`w-6 h-6 transition-transform ${showProfile ? "rotate-180" : ""}`} />
+                <ChevronsUpDownIcon
+                  className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${showProfile ? "rotate-180" : ""}`}
+                />
               </div>
             </button>
             {showProfile && (
-              <div className="absolute bottom-full left-0 w-80 mb-3 px-4 overflow-hidden z-50">
-                <div className="p-6 bg-gray-700 rounded-lg">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-purple-500" />
+              <div className="absolute bottom-full left-0 w-full sm:w-80 mb-3 px-2 sm:px-4 overflow-hidden z-50">
+                <div className="p-3 sm:p-6 bg-gray-700 rounded-lg">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-indigo-600 to-purple-500" />
                       <div>
-                        <p className="text-lg font-medium text-white">{auth.user.name}</p>
-                        <p className="text-gray-300">{auth.user.email}</p>
+                        <p className="text-base sm:text-lg font-medium text-white">{auth.user.name}</p>
+                        <p className="text-sm sm:text-base text-gray-300">{auth.user.email}</p>
                       </div>
                     </div>
                     <button
@@ -245,7 +239,7 @@ export default function Chat({ auth, flash }) {
                         router.post("/logout")
                         setShowProfile(false)
                       }}
-                      className="w-full bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition-colors"
+                      className="w-full bg-gray-600 hover:bg-gray-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-sm sm:text-base"
                     >
                       ออกจากระบบ
                     </button>
@@ -255,9 +249,12 @@ export default function Chat({ auth, flash }) {
             )}
           </div>
         </aside>
+
+        {/* ===== Main Content ===== */}
         <main
-          className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${showSidebar ? "ml-80" : "ml-0"}`}
+          className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${showSidebar ? "md:ml-72 lg:ml-80" : "ml-0"} w-full`}
         >
+          {/* Header */}
           <header className="bg-gray-900 border-b border-gray-700 p-6 flex items-center relative">
             <button
               onClick={() => setShowSidebar(true)}
@@ -265,18 +262,18 @@ export default function Chat({ auth, flash }) {
                 }`}
               aria-label="Open sidebar"
             >
-              <SidebarOpen className="w-6 h-6" />
+              <SidebarOpen className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-            <p className="text-md flex-grow text-center">{chatName}</p>
+            <p className="text-sm sm:text-md flex-grow text-center">{chatName}</p>
           </header>
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-900 mt-6">
-            <div className="space-y-6 max-w-3xl mx-auto">
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-gray-900 mt-4 sm:mt-6">
+            <div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto px-2 sm:px-0">
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`rounded-lg max-w-3xl break-words ${msg.sender === "user"
-                      ? "bg-indigo-600 text-white"
-                      : "text-white"
+                    className={`rounded-lg max-w-[85%] sm:max-w-3xl px-1 sm:px-1 break-words text-sm sm:text-base ${msg.sender === "user" ? "bg-indigo-600 text-white" : "text-white"
                       }`}
                   >
                     <FormattedMessage content={msg.text} />
@@ -302,34 +299,35 @@ export default function Chat({ auth, flash }) {
             </div>
           </div>
 
-          <div className="p-4 pt-0 mb-2 bg-transparent">
-            <form onSubmit={sendMessage} className="max-w-3xl mx-auto">
-              <div className="flex gap-2"> {/* ลด gap ลงเป็น 2 */}
+          {/* Message Input */}
+          <div className="p-2 sm:p-4 pt-0 mb-2 bg-transparent">
+            <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto px-2 sm:px-0">
+              <div className="flex gap-2">
                 <textarea
                   ref={textareaRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage(e);
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSendMessage(e)
                     }
                   }}
                   rows={1}
-                  className="flex-1 bg-gray-800 text-white border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none min-h-[48px] max-h-[200px] overflow-y-auto"
+                  className="flex-1 bg-gray-800 text-white border border-gray-700 rounded-lg px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none min-h-[40px] sm:min-h-[48px] max-h-[200px] overflow-y-auto text-sm sm:text-base"
                   placeholder="พิมพ์ข้อความของคุณ..."
                   disabled={loading}
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="h-12 w-12 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+                  className="h-10 w-10 sm:h-12 sm:w-12 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
                   aria-label="ส่ง"
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
-              <div className="mt-2 text-center text-xs text-gray-400">
+              <div className="mt-1 sm:mt-2 text-center text-[10px] sm:text-xs text-gray-400">
                 คำตอบที่ได้ค่อนข้างมีความหลอนเป็นอย่างมาก ควรเช็คคำตอบก่อนนำไปใช้
               </div>
             </form>
@@ -339,4 +337,3 @@ export default function Chat({ auth, flash }) {
     </>
   )
 }
-

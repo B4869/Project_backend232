@@ -1,16 +1,18 @@
-import { useForm } from "@inertiajs/react"
-import { Loader2, UploadCloud, X, Pencil, Trash2, FileText } from "lucide-react"
 import { useState } from "react"
+import { useForm } from "@inertiajs/react"
 import { router } from "@inertiajs/react"
-import FormattedMessage from "@/Components/FormattedMessage"
 import Swal from "sweetalert2"
 import FlashMessage from "@/Components/FlashMessage"
+import { Loader2, UploadCloud, X, Pencil, Trash2, FileText } from "lucide-react"
+import FormattedMessage from "@/Components/FormattedMessage"
 
 export default function Admin({ flash, rule_bases }) {
+  // ===== State Management =====
   const [editingRule, setEditingRule] = useState(null)
   const [isAddingRule, setIsAddingRule] = useState(false)
 
-  const { data, setData, post, errors, processing, reset } = useForm({
+  // ===== Form Management =====
+  const uploadForm = useForm({
     file: null,
   })
 
@@ -22,23 +24,29 @@ export default function Admin({ flash, rule_bases }) {
     rule: "",
   })
 
-  const handleSubmit = (e) => {
+  // ===== File Upload Handlers =====
+  const handleFileSubmit = (e) => {
     e.preventDefault()
-    post(route("upload_data.store"))
+    uploadForm.post(route("upload_data.store"))
   }
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0]
-    setData("file", selectedFile)
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile) {
+      uploadForm.setData("file", selectedFile)
+    }
   }
 
   const handleRemoveFile = (e) => {
     e.preventDefault()
-    reset("file")
+    uploadForm.reset("file")
   }
 
+  // ===== Rule Base Handlers =====
   const handleEditSubmit = (e) => {
     e.preventDefault()
+    if (!editingRule) return
+
     router.put(route("rule_bases.update", editingRule.id), editForm.data, {
       onSuccess: () => {
         setEditingRule(null)
@@ -85,21 +93,26 @@ export default function Admin({ flash, rule_bases }) {
   return (
     <>
       <FlashMessage flash={flash} />
-      <div className="min-h-screen bg-gray-150 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-3xl space-y-24">
-          {/* Upload Section */}
+      <div className="min-h-screen bg-gray-150 py-8 sm:py-12 px-3 sm:px-6 lg:px-8">
+        <div className="container mx-auto max-w-3xl space-y-16 sm:space-y-24">
+          {/* ===== File Upload Section ===== */}
           <div className="w-full">
             <div>
-              <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-8">Upload JSON File</h2>
+              <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 sm:mb-8">
+                Upload JSON File
+              </h2>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-6 bg-white border-none shadow-2xl rounded-xl p-8">
+            <form
+              onSubmit={handleFileSubmit}
+              className="space-y-4 sm:space-y-6 bg-white border-none shadow-2xl rounded-xl p-4 sm:p-8"
+            >
               <div className="rounded-md">
                 <div className="mb-4">
                   <label
                     htmlFor="file-upload"
-                    className="relative flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                    className="relative flex flex-col items-center justify-center w-full h-32 sm:h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
                   >
-                    {data.file && (
+                    {uploadForm.data.file && (
                       <button
                         type="button"
                         onClick={handleRemoveFile}
@@ -110,13 +123,15 @@ export default function Admin({ flash, rule_bases }) {
                     )}
 
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      {data.file ? (
+                      {uploadForm.data.file ? (
                         <>
                           <UploadCloud className="w-8 h-8 mb-4 text-green-500" />
                           <p className="mb-2 text-sm text-gray-500">
-                            <span className="font-semibold">{data.file.name}</span>
+                            <span className="font-semibold">{uploadForm.data.file.name}</span>
                           </p>
-                          <p className="text-xs text-gray-500">{(data.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                          <p className="text-xs text-gray-500">
+                            {(uploadForm.data.file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
                         </>
                       ) : (
                         <>
@@ -131,9 +146,9 @@ export default function Admin({ flash, rule_bases }) {
 
                     <input id="file-upload" type="file" accept=".json" onChange={handleFileChange} className="hidden" />
                   </label>
-                  {errors.file && (
+                  {uploadForm.errors.file && (
                     <p className="mt-2 text-sm text-red-600" id="file-error">
-                      {errors.file}
+                      {uploadForm.errors.file}
                     </p>
                   )}
                 </div>
@@ -142,27 +157,28 @@ export default function Admin({ flash, rule_bases }) {
               <div>
                 <button
                   type="submit"
-                  disabled={processing}
+                  disabled={uploadForm.processing}
                   className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  {processing ? (
+                  {uploadForm.processing ? (
                     <Loader2 className="animate-spin h-5 w-5 mr-3" />
                   ) : (
                     <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                       <UploadCloud className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" />
                     </span>
                   )}
-                  {processing ? "Uploading..." : "Upload File"}
+                  {uploadForm.processing ? "Uploading..." : "Upload File"}
                 </button>
               </div>
             </form>
           </div>
 
-          {/* Rule Base Section */}
+          {/* ===== Rule Base Section ===== */}
           <div className="w-full">
-            <h3 className="text-center text-3xl font-extrabold text-gray-900 mb-8">Rule Base</h3>
-            <div className="bg-white border-none shadow-2xl rounded-xl p-8">
+            <h3 className="text-center text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 sm:mb-8">Rule Base</h3>
+            <div className="bg-white border-none shadow-2xl rounded-xl p-4 sm:p-8">
               <div className="space-y-6">
+                {/* Add New Rule Form */}
                 {isAddingRule && (
                   <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-300 border-dashed">
                     <form onSubmit={handleCreateSubmit} className="space-y-4">
@@ -175,7 +191,7 @@ export default function Admin({ flash, rule_bases }) {
                         />
                       </div>
                       {createForm.errors.rule && <p className="text-sm text-red-400">{createForm.errors.rule}</p>}
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-col sm:flex-row justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => setIsAddingRule(false)}
@@ -202,12 +218,13 @@ export default function Admin({ flash, rule_bases }) {
                   </div>
                 )}
 
-                {(rule_bases.length > 0 || isAddingRule) ? (
+                {/* Rules List */}
+                {rule_bases.length > 0 || isAddingRule ? (
                   <div className="space-y-4">
                     {rule_bases.map((rule, index) => (
                       <div
                         key={index}
-                        className="bg-gray-50 rounded-lg p-4 border-2 border-gray-300 border-dashed hover:bg-gray-100 transition-colors duration-200 relative group"
+                        className="bg-gray-50 rounded-lg p-3 sm:p-4 border-2 border-gray-300 border-dashed hover:bg-gray-100 transition-colors duration-200 relative group"
                       >
                         {editingRule?.id === rule.id ? (
                           <form onSubmit={handleEditSubmit} className="space-y-4">
@@ -220,7 +237,7 @@ export default function Admin({ flash, rule_bases }) {
                               />
                             </div>
                             {editForm.errors.rule && <p className="text-sm text-red-400">{editForm.errors.rule}</p>}
-                            <div className="flex justify-end gap-2">
+                            <div className="flex flex-col sm:flex-row justify-end gap-2">
                               <button
                                 type="button"
                                 onClick={() => setEditingRule(null)}
@@ -239,8 +256,11 @@ export default function Admin({ flash, rule_bases }) {
                           </form>
                         ) : (
                           <>
-                            <FormattedMessage className="pr-16 text-gray-800" content={rule.rule} />
-                            <div className="absolute right-4 top-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <FormattedMessage
+                              className="pr-12 sm:pr-16 text-sm sm:text-base text-gray-800 break-words"
+                              content={rule.rule}
+                            />
+                            <div className="absolute right-3 sm:right-4 top-3 sm:top-4 flex gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               <button
                                 onClick={() => {
                                   setEditingRule(rule)
@@ -266,6 +286,7 @@ export default function Admin({ flash, rule_bases }) {
                   <div className="text-center text-gray-500">No rules found</div>
                 )}
 
+                {/* Add Rule Button */}
                 <button
                   onClick={() => setIsAddingRule(true)}
                   className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -283,3 +304,4 @@ export default function Admin({ flash, rule_bases }) {
     </>
   )
 }
+

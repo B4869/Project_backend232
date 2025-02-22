@@ -6,6 +6,9 @@ body {
     font-family: 'Prompt', sans-serif;
 }
 
+
+/* auth */
+
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
     display: none;
@@ -15,6 +18,9 @@ input[type="password"]::-webkit-credentials-auto-fill-button,
 input[type="password"]::-webkit-contacts-auto-fill-button {
     display: none;
 }
+
+
+/* swal */
 
 .swal2-popup {
     padding: 1.6rem !important;
@@ -38,7 +44,10 @@ input[type="password"]::-webkit-contacts-auto-fill-button {
     justify-content: flex-end !important;
 }
 
+
+
 /* ซ่อน scrollbar สำหรับ Chrome, Safari และ Opera */
+
 *::-webkit-scrollbar {
     display: none;
 }
@@ -46,7 +55,20 @@ input[type="password"]::-webkit-contacts-auto-fill-button {
 /* ซ่อน scrollbar สำหรับ IE, Edge และ Firefox */
 * {
     -ms-overflow-style: none;
-    /* IE และ Edge */
     scrollbar-width: none;
-    /* Firefox */
 }
+
+
+/* responsive */
+
+@media (max-width: 640px) {
+    .font-prompt {
+      font-size: 14px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .font-prompt {
+      font-size: 12px;
+    }
+  }
