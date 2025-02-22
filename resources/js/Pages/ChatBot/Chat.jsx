@@ -269,7 +269,7 @@ export default function Chat({ auth, flash }) {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-gray-900 mt-4 sm:mt-6">
-            <div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto px-2 sm:px-0">
+            <div className="space-y-6 sm:space-y-10 max-w-3xl mx-auto px-2 sm:px-0">
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                   <div
