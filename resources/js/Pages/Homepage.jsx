@@ -51,9 +51,9 @@ export default function Homepage({ flash, auth }) {
         {/* Content Overlay */}
         <div className="relative z-10">
           {/* Navigation */}
-          <nav className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-8 lg:px-12 pt-4 sm:pt-8 gap-6 sm:gap-0">
+          <nav className="flex sm:flex-row justify-between items-center px-4 sm:px-8 lg:px-12 pt-4 sm:pt-8 gap-6 sm:gap-0">
             <span className="text-3xl font-bold text-white">
-              <img src="/images/logo.png" alt="Logo" className="w-[200px] sm:w-[250px] lg:w-[300px] object-contain" />
+              <img src="/images/logo.png" alt="Logo" className="w-[150px] sm:w-[250px] lg:w-[300px] object-contain" />
             </span>
             <div className="flex gap-4 sm:gap-4 lg:gap-8">
               {auth.user ? (
@@ -65,11 +65,11 @@ export default function Homepage({ flash, auth }) {
                     >
                       <img
                         src="/images/admin.png"
-                        className="w-[120px] sm:w-[150px] lg:w-[180px] object-contain group-hover:hidden"
+                        className="w-[52px] sm:w-[75px] lg:w-[90px] object-contain group-hover:hidden"
                       />
                       <img
                         src="/images/admin-hover.png"
-                        className="w-[120px] sm:w-[150px] lg:w-[180px] object-contain hidden group-hover:block"
+                        className="w-[52px] sm:w-[75px] lg:w-[90px] object-contain hidden group-hover:block"
                       />
                     </button>
                   )}
@@ -80,11 +80,11 @@ export default function Homepage({ flash, auth }) {
                   >
                     <img
                       src="/images/logout.png"
-                      className="w-[70px] sm:w-[85px] lg:w-[100px] object-contain group-hover:hidden"
+                      className="w-[60px] sm:w-[85px] lg:w-[100px] object-contain group-hover:hidden"
                     />
                     <img
                       src="/images/logout-hover.png"
-                      className="w-[70px] sm:w-[85px] lg:w-[100px] object-contain hidden group-hover:block"
+                      className="w-[60px] sm:w-[85px] lg:w-[100px] object-contain hidden group-hover:block"
                     />
                   </button>
                 </>
@@ -96,11 +96,11 @@ export default function Homepage({ flash, auth }) {
                   >
                     <img
                       src="/images/login.png"
-                      className="w-[60px] sm:w-[70px] lg:w-[80px] object-contain group-hover:hidden"
+                      className="w-[45px] sm:w-[70px] lg:w-[80px] object-contain group-hover:hidden"
                     />
                     <img
                       src="/images/login-hover.png"
-                      className="w-[60px] sm:w-[70px] lg:w-[80px] object-contain hidden group-hover:block"
+                      className="w-[45px] sm:w-[70px] lg:w-[80px] object-contain hidden group-hover:block"
                     />
                   </button>
                   <button
@@ -109,11 +109,11 @@ export default function Homepage({ flash, auth }) {
                   >
                     <img
                       src="/images/register.png"
-                      className="w-[100px] sm:w-[114px] lg:w-[128px] object-contain group-hover:hidden"
+                      className="w-[75px] sm:w-[114px] lg:w-[128px] object-contain group-hover:hidden"
                     />
                     <img
                       src="/images/register-hover.png"
-                      className="w-[100px] sm:w-[114px] lg:w-[128px] object-contain hidden group-hover:block"
+                      className="w-[75px] sm:w-[114px] lg:w-[128px] object-contain hidden group-hover:block"
                     />
                   </button>
                 </>

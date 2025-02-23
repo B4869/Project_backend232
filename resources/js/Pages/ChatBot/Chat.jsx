@@ -167,7 +167,7 @@ export default function Chat({ auth, flash }) {
           {/* Sidebar Header */}
           <div className="p-5 flex items-center justify-between border-b border-gray-700">
             <button onClick={() => router.get(`/`)}>
-              <img src="/images/logo2.png" alt="Logo" className="object-cover w-[140px] sm:w-[180px]" />
+              <img src="/images/logo2.png" alt="Logo" className="object-cover w-[160px] sm:w-[180px]" />
             </button>
             <button onClick={() => setShowSidebar(false)} className="text-gray-300 hover:text-white focus:outline-none">
               <SidebarClose className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -264,7 +264,7 @@ export default function Chat({ auth, flash }) {
             >
               <SidebarOpen className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-            <p className="text-sm sm:text-md flex-grow text-center">{chatName}</p>
+            <p className="text-md flex-grow text-center">{chatName}</p>
           </header>
 
           {/* Messages */}
