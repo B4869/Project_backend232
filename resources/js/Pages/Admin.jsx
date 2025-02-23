@@ -99,7 +99,7 @@ export default function Admin({ flash, rule_bases }) {
           <div className="w-full">
             <div>
               <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 sm:mb-8">
-                Upload JSON File
+                Upload Knowledge Base
               </h2>
             </div>
             <form
