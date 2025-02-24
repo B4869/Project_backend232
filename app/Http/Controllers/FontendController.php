@@ -80,7 +80,7 @@ class FontendController extends Controller
         try {
             // Validate request
             $validated = $request->validate([
-                'rule' => 'required|string|max:1000'
+                'rule' => 'required|string'
             ]);
 
             // Create rule
@@ -100,7 +100,7 @@ class FontendController extends Controller
         try {
             // Validate request
             $validated = $request->validate([
-                'rule' => 'required|string|max:1000'
+                'rule' => 'required|string'
             ]);
 
             // Find and update rule
